@@ -1,0 +1,314 @@
+#include <iostream>
+#include <fstream>
+#include <cstring>
+using namespace std;
+
+#define MAX_BOOKS 100
+#define MAX_MEMBERS 50
+
+struct Book {
+    int id;
+    char title[50];
+    char author[50];
+    char isbn[20];
+    int copies;
+};
+
+struct Member {
+    int id;
+    char name[50];
+    char borrowedISBN[20];
+};
+
+Book books[MAX_BOOKS];
+Member members[MAX_MEMBERS];
+int bookCount = 0;
+int memberCount = 0;
+
+void saveBooks() {
+    ofstream f("books.txt");
+    f << bookCount << "\n";
+    for (int i = 0; i < bookCount; i++) {
+        f << books[i].id << "\n";
+        f << books[i].title << "\n";
+        f << books[i].author << "\n";
+        f << books[i].isbn << "\n";
+        f << books[i].copies << "\n";
+    }
+    f.close();
+}
+
+void loadBooks() {
+    ifstream f("books.txt");
+    if (!f){
+        return;
+    }
+    f >> bookCount;
+    f.ignore();
+    for (int i = 0; i < bookCount; i++) {
+        f >> books[i].id;
+        f.ignore();
+        f.getline(books[i].title, 50);
+        f.getline(books[i].author, 50);
+        f.getline(books[i].isbn, 20);
+        f >> books[i].copies;
+        f.ignore();
+    }
+    f.close();
+}
+
+void saveMembers() {
+    ofstream f("members.txt");
+    f << memberCount << "\n";
+    for (int i = 0; i < memberCount; i++) {
+        f << members[i].id << "\n";
+        f << members[i].name << "\n";
+        f << members[i].borrowedISBN << "\n";
+    }
+    f.close();
+}
+
+void loadMembers() {
+    ifstream f("members.txt");
+    if (!f){
+        return;
+    }
+    f >> memberCount;
+    f.ignore();
+    for (int i = 0; i < memberCount; i++) {
+        f >> members[i].id;
+        f.ignore();
+        f.getline(members[i].name, 50);
+        f.getline(members[i].borrowedISBN, 20);
+    }
+    f.close();
+}
+
+void addBook() {
+    cout << "\n--- Add Book ---\n";
+    Book* b = &books[bookCount];
+    b->id = bookCount + 1;
+    cout << "Title  : ";
+    cin.ignore();
+    cin.getline(b->title, 50);
+    cout << "Author : ";
+    cin.getline(b->author, 50);
+    cout << "ISBN   : ";
+    cin.getline(b->isbn, 20);
+    cout << "Copies : ";
+    cin >> b->copies;
+    bookCount++;
+    saveBooks();
+    cout << "Book added!\n";
+}
+
+void displayBooks() {
+    cout << "\n--- All Books ---\n";
+    if (bookCount == 0) { 
+        cout << "No books.\n";
+        return; }
+    for (int i = 0; i < bookCount; i++) {
+        cout << "ID: " << books[i].id << " | Title: " << books[i].title
+             << " | Author: " << books[i].author
+             << " | ISBN: " << books[i].isbn
+             << " | Copies: " << books[i].copies << "\n";
+    }
+}
+
+void addMember() {
+    cout << "\n--- Add Member ---\n";
+    Member* m = &members[memberCount];
+    m->id = memberCount + 1;
+    strcpy(m->borrowedISBN, "none");
+    cout << "Name : ";
+    cin.ignore(); 
+    cin.getline(m->name, 50);
+    memberCount++;
+    saveMembers();
+    cout << "Member added! ID = " << m->id << "\n";
+}
+
+void displayMembers() {
+    cout << "\n--- All Members ---\n";
+    if (memberCount == 0) { 
+    cout << "No members.\n";
+    return;
+ }
+    for (int i = 0; i < memberCount; i++) {
+        cout << "ID: " << members[i].id << " | Name: " << members[i].name
+             << " | Borrowed ISBN: " << members[i].borrowedISBN << "\n";
+    }
+}
+
+void searchByISBN() {
+    char isbn[20];
+    cout << "\nEnter ISBN: ";
+    cin.ignore();
+    cin.getline(isbn, 20);
+    for (int i = 0; i < bookCount; i++) {
+        if (strcmp(books[i].isbn, isbn) == 0) {
+            cout << "Found: " << books[i].title << " by " << books[i].author << "\n";
+            return;
+        }
+    }
+    cout << "Book not found.\n";
+}
+
+void searchByAuthor() {
+    char author[50];
+    cout << "\nEnter Author: ";
+    cin.ignore();
+    cin.getline(author, 50);
+    int found = 0;
+    for (int i = 0; i < bookCount; i++) {
+        if (strcmp(books[i].author, author) == 0) {
+            cout << "- " << books[i].title << " (ISBN: " << books[i].isbn << ")\n";
+            found++;
+        }
+    }
+    if (found == 0){
+        cout << "No books by this author.\n";
+    } 
+}
+
+void deleteBook() {
+    char isbn[20];
+    cout << "\nEnter ISBN to delete: "; 
+    cin.ignore();
+    cin.getline(isbn, 20);
+    for (int i = 0; i < bookCount; i++) {
+        if (strcmp(books[i].isbn, isbn) == 0) {
+            for (int j = i; j < bookCount - 1; j++)
+                books[j] = books[j + 1];
+            bookCount--;
+            saveBooks();
+            cout << "Book deleted.\n";
+            return;
+        }
+    }
+    cout << "Book not found.\n";
+}
+
+void borrowBook() {
+    int mid;
+    char isbn[20];
+    cout << "\nMember ID : ";
+    cin >> mid;
+    cout << "ISBN      : "; 
+    cin >> isbn;
+
+    Member* m = nullptr;
+    for (int i = 0; i < memberCount; i++)
+        if (members[i].id == mid) {
+            m = &members[i];
+            break; 
+            }
+
+    if (m == nullptr) { 
+        cout << "Member not found.\n";
+        return; 
+    }
+
+    for (int i = 0; i < bookCount; i++) {
+        if (strcmp(books[i].isbn, isbn) == 0) {
+            if (books[i].copies <= 0) { cout << "No copies available.\n"; return; }
+            books[i].copies--;
+            strcpy(m->borrowedISBN, isbn);
+            saveBooks();
+            saveMembers();
+            cout << m->name << " borrowed " << books[i].title << "\n";
+            return;
+        }
+    }
+    cout << "Book not found.\n";
+}
+
+void returnBook() {
+    int mid;
+    cout << "\nMember ID : ";
+    cin >> mid;
+
+    Member* m = nullptr;
+    for (int i = 0; i < memberCount; i++)
+        if (members[i].id == mid){
+            m = &members[i];
+            break;
+         }
+
+    if (m == nullptr)
+     {
+         cout << "Member not found.\n";
+          return;
+         }
+
+    if (strcmp(m->borrowedISBN, "none") == 0) {
+        cout << m->name << " has no borrowed book.\n";
+        return;
+    }
+
+    for (int i = 0; i < bookCount; i++) {
+        if (strcmp(books[i].isbn, m->borrowedISBN) == 0) {
+            books[i].copies++;
+            cout << m->name << " returned " << books[i].title << "\n";
+            strcpy(m->borrowedISBN, "none");
+            saveBooks();
+            saveMembers();
+            return;
+        }
+    }
+    cout << "Book not found.\n";
+}
+
+int main() {
+    loadBooks();
+    loadMembers();
+
+    int choice;
+    do {
+        cout << "\n=== LIBRARY MENU ===\n";
+        cout << "1. Add Book\n";
+        cout << "2. Display Books\n";
+        cout << "3. Add Member\n";
+        cout << "4. Display Members\n";
+        cout << "5. Search by ISBN\n";
+        cout << "6. Search by Author\n";
+        cout << "7. Delete Book\n";
+        cout << "8. Borrow Book\n";
+        cout << "9. Return Book\n";
+        cout << "0. Exit\n";
+        cout << "Choice: ";
+        cin >> choice;
+
+        if(choice == 1){
+            addBook();
+        }
+        else if (choice == 2){
+             displayBooks();
+        }
+        else if (choice == 3){
+            addMember();
+        }
+        else if (choice == 4){
+             displayMembers();
+        }
+        else if (choice == 5){
+             searchByISBN();
+        }
+        else if (choice == 6){
+             searchByAuthor();
+        }
+        else if (choice == 7){
+             deleteBook();
+        }
+        else if (choice == 8){
+            borrowBook();
+        }
+        else if (choice == 9){
+            returnBook();
+        }
+
+    } while (choice != 0);
+
+    cout << "Goodbye!\n";
+    return 0;
+}
